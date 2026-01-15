@@ -13,7 +13,7 @@ pipeline {
         stage('Install & Test'){
             steps{  
                 sh '''
-                    python -v
+                    python3 -v
                     pip3 --version || true
                     python3 -m venv .venv
                     . .venv/bin/activate
