@@ -11,32 +11,34 @@ pipeline {
                 git branch: 'master', url: 'https://github.com/mukkamallapradeep/python-ci-cd-demo.git'
             }
         }
+       
         stage('Install & Test') {
-            steps {
-                sh '''
-                    set -eux
-                    python3 --version
-                    pip3 --version
-
-                    # Create virtual environment
-                    python3 -m venv .venv
-                    . .venv/bin/activate
-
-                    # Install dependencies
-                    pip install --upgrade pip
-                    pip install -r app/requirements.txt
-
-                    # Run tests and generate JUnit XML
-                    mkdir -p reports
-                    pytest -q app/tests --junitxml=reports/pytest-junit.xml
-                '''
+          steps {
+            sh '''
+              set -eux
+              # Show Python version available on the node
+              python3 --version
+        
+              # Create and activate a virtual environment
+              python3 -m venv .venv
+              . .venv/bin/activate
+        
+              # Upgrade pip in this venv and install deps
+              python -m pip install --upgrade pip
+              python -m pip install -r app/requirements.txt
+        
+              # Run tests and generate a JUnit XML report
+              mkdir -p reports
+              python -m pytest -q app/tests --junitxml=reports/pytest-junit.xml
+            '''
+          }
+          post {
+            always {
+              junit allowEmptyResults: true, testResults: 'reports/pytest-junit.xml'
             }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: 'reports/pytest-junit.xml'
-                }
-            }
+          }
         }
+
         stage('Docker Build') {
             steps {
                 sh '''
@@ -46,18 +48,17 @@ pipeline {
                 '''
             }
         }
+       
         stage('Deploy (Run Container)') {
-            when { expression { env.BRANCH_NAME == 'master' } }
-            steps {
-                sh '''
-                    # Stop and remove old container if exists
-                    docker ps -aq --filter "name=flask-demo" | xargs -r docker rm -f
-
-                    # Run new container mapping host port 5000
-                    docker run -d --name flask-demo -p 5000:5000 ${IMAGE_NAME}:${IMAGE_TAG}
-                '''
-            }
+          when { expression { env.BRANCH_NAME == 'master' } }  // <- env, not evn
+          steps {
+            sh '''
+              docker ps -aq --filter "name=flask-demo" | xargs -r docker rm -f
+              docker run -d --name flask-demo -p 5000:5000 ${IMAGE_NAME}:${IMAGE_TAG}
+            '''
+          }
         }
+
     }
     post {
         always {
