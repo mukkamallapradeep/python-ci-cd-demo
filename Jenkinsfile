@@ -50,7 +50,7 @@ pipeline {
         }
        
         stage('Deploy (Run Container)') {
-          when { expression { env.BRANCH_NAME == 'master' } }  // <- env, not evn
+           // when { expression { env.BRANCH_NAME == 'master' } }  // <- env, not evn
           steps {
             sh '''
               docker ps -aq --filter "name=flask-demo" | xargs -r docker rm -f
