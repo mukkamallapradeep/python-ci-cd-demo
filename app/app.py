@@ -1,10 +1,10 @@
 from flask import Flask, jsonify
-
+from datetime import datetime
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Hello from Flask CI/cd via Jenkins & Docker"
+    return f"Hello from Flask CI/CD via Jenkins & Docker. Created at {datetime.now()}"
 
 @app.route("/health")
 def health():
