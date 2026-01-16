@@ -8,8 +8,8 @@ def home():
 
 @app.route("/health")
 def health():
-    return f"Hello health status ok. Created at {datetime.now()}"
-    # return jsonify({"status":"ok"})
+    # return f"Hello health status ok. Created at {datetime.now()}"
+    return jsonify({"status":"ok"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
