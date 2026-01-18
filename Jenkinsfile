@@ -48,7 +48,7 @@ pipeline {
                     sonar-scanner\
                      -Dsonar.projectKey=flask-ci-cd-demo\
                      -Dsonar.sources=app\
-                     -Dsonar.host.url=${SONAR_HOST-URL}\
+                     -Dsonar.host.url=${SONAR_HOST_URL}\
                      -Dsonar.login=${SONAR_TOKEN}
                      '''
                 }
