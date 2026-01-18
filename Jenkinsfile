@@ -4,6 +4,8 @@ pipeline {
     environment {
         IMAGE_NAME = "flask-ci-cd-demo"
         IMAGE_TAG = "latest"
+        SONAR_HOST_URL = "http://44.197.246.87:9000"
+        SONAR_TOKEN = credentials('sonar-token')
     }
     stages {
         stage('Checkout') {
@@ -29,7 +31,7 @@ pipeline {
         
               # Run tests and generate a JUnit XML report
               mkdir -p reports
-              python -m pytest -q app/tests --junitxml=reports/pytest-junit.xml
+              python -m pytest -q app/tests --junitxml=reports/pytest-junit.xml --cov=app --cov-report=xml
             '''
           }
           post {
@@ -37,6 +39,20 @@ pipeline {
               junit allowEmptyResults: true, testResults: 'reports/pytest-junit.xml'
             }
           }
+        }
+        stage('SonarQube Analysis'){
+            steps{
+                withSonarQubeEnv('sonarqube-server'){
+                    sh '''
+                    ..venv/bin/activate
+                    sonar-scanner\
+                     -Dsonar.projectKey=flask-ci-cd-demo\
+                     -Dsonar.sources=app\
+                     -Dsonar.host.url=${SONAR_HOST-URL}\
+                     -Dsonar.login=${SONAR_TOKEN}
+                     '''
+                }
+            }
         }
 
         stage('Docker Build') {
