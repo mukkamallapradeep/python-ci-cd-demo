@@ -23,7 +23,7 @@ pipeline {
         
               # Create and activate a virtual environment
               python3 -m venv .venv
-              . .venv/bin/activate
+              .venv/bin/activate
         
               # Upgrade pip in this venv and install deps
               python -m pip install --upgrade pip
@@ -44,7 +44,6 @@ pipeline {
             steps{
                 withSonarQubeEnv('sonarqube-server'){
                     sh '''
-                    ..venv/bin/activate
                     sonar-scanner\
                      -Dsonar.projectKey=flask-ci-cd-demo\
                      -Dsonar.sources=app\
