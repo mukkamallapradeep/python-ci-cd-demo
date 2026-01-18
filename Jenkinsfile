@@ -43,13 +43,23 @@ pipeline {
         stage('SonarQube Analysis'){
             steps{
                 withSonarQubeEnv('sonarqube-server'){
-                    sh '''
-                    sonar-scanner\
-                     -Dsonar.projectKey=flask-ci-cd-demo\
-                     -Dsonar.sources=app\
-                     -Dsonar.host.url=${SONAR_HOST_URL}\
-                     -Dsonar.login=${SONAR_TOKEN}
-                     '''
+                    
+                    script {
+                            def scannerHome = tool 'SonarScanner'
+                            sh '''
+                              set -euxo pipefail
+                    
+                              # (Optional) sanity check that coverage.xml exists here
+                              test -f coverage.xml
+                    
+                              "${scannerHome}/bin/sonar-scanner" \
+                                -Dsonar.projectKey=flask-ci-cd-demo \
+                                -Dsonar.sources=app \
+                                -Dsonar.python.coverage.reportPaths=coverage.xml \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.token=${SONAR_TOKEN}
+                                 '''
+                    }
                 }
             }
         }
