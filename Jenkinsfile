@@ -17,22 +17,17 @@ pipeline {
         stage('Install & Test') {
           steps {
             sh '''
-              set -eux
-              # Show Python version available on the node
-              python3 --version
-        
-              # Create and activate a virtual environment
+              set -euxo pipefail
               python3 -m venv .venv
-              .venv/bin/activate
-        
-              # Upgrade pip in this venv and install deps
+              . .venv/bin/activate
               python -m pip install --upgrade pip
               python -m pip install -r app/requirements.txt
-        
-              # Run tests and generate a JUnit XML report
+              python -m pip install pytest pytest-cov
               mkdir -p reports
-              python -m pytest -q app/tests --junitxml=reports/pytest-junit.xml --cov=app --cov-report=xml
+              python -m pytest -q app/tests --junitxml=reports/pytest-junit.xml \
+                --cov=app --cov-report=xml
             '''
+            stash name: 'coverage', includes: 'coverage.xml'
           }
           post {
             always {
@@ -40,28 +35,25 @@ pipeline {
             }
           }
         }
-        stage('SonarQube Analysis'){
-            steps{
-                withSonarQubeEnv('sonarqube-server'){
-                    
-                    script {
-                            def scannerHome = tool 'SonarScanner'
-                            sh '''
-                              set -euxo pipefail
-                    
-                              # (Optional) sanity check that coverage.xml exists here
-                              test -f coverage.xml
-                    
-                              "${scannerHome}/bin/sonar-scanner" \
-                                -Dsonar.projectKey=flask-ci-cd-demo \
-                                -Dsonar.sources=app \
-                                -Dsonar.python.coverage.reportPaths=coverage.xml \
-                                -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.token=${SONAR_TOKEN}
-                                 '''
-                    }
-                }
+        
+        stage('SonarQube Analysis') {
+          steps {
+            unstash 'coverage'
+            withSonarQubeEnv('sonarqube-server') {
+              script {
+                def scannerHome = tool 'SonarScanner'
+                sh """
+                  set -euxo pipefail
+                  "${scannerHome}/bin/sonar-scanner" \
+                    -Dsonar.projectKey=flask-ci-cd-demo \
+                    -Dsonar.sources=app \
+                    -Dsonar.python.coverage.reportPaths=coverage.xml \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.token=${SONAR_TOKEN}
+                """
+              }
             }
+          }
         }
 
         stage('Docker Build') {
