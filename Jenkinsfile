@@ -41,7 +41,7 @@ pipeline {
                 withSonarQubeEnv('sonarqube-server') {
                     // Use Jenkins SonarScanner tool
                     script {
-                        def scannerHome = tool 'SonarScanner'
+                        def scannerHome = tool 'sonar-scanner'
                         sh """#!/usr/bin/env bash
 set -eux
 
