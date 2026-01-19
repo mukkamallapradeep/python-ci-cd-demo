@@ -48,31 +48,61 @@ test -f coverage.xml
       }
     }
 
-    stage('SonarQube Analysis') {
-      steps {
-        // Bring coverage.xml into the current workspace (even if this stage runs on a different node)
-        unstash 'coverage'
+    
+stage('SonarQube Analysis') {
+  steps {
+    // Bring coverage.xml into this workspace if you stashed it earlier
+    unstash 'coverage'
 
-        withSonarQubeEnv('sonarqube-server') {
-          script {
-            def scannerHome = tool 'SonarScanner'
-            sh """#!/usr/bin/env bash
+    withSonarQubeEnv('sonarqube-server') {
+      script {
+        def scannerHome = tool 'SonarScanner'   // Must exist in Global Tool Configuration
+        sh '''#!/usr/bin/env bash
 set -euo pipefail
 
-# Ensure coverage.xml is present in this workspace
-test -f coverage.xml
+echo "=== Sonar DIAGNOSTICS ==="
+echo "PWD               : $(pwd)"
+echo "WORKSPACE         : ${WORKSPACE:-}"
+echo "scannerHome       : '"${scannerHome}"'"
+echo "scanner binary    : '"${scannerHome}"'/bin/sonar-scanner"
+ls -l '"${scannerHome}"'/bin/ || true
+echo
+echo "Java version:"
+java -version || { echo "Java not found on this node. Install JDK (e.g., openjdk-17-jdk) and retry."; exit 1; }
+echo
+echo "Checking SonarQube availability at: '"${SONAR_HOST_URL}"'/api/server/version"
+curl -sfI '"${SONAR_HOST_URL}"'/api/server/version || { echo "Cannot reach SonarQube at ${SONAR_HOST_URL}"; exit 1; }
+echo "Sonar is reachable."
+echo
 
-"\${scannerHome}/bin/sonar-scanner" \\
-  -Dsonar.projectKey=flask-ci-cd-demo \\
-  -Dsonar.sources=app \\
-  -Dsonar.python.coverage.reportPaths=coverage.xml \\
-  -Dsonar.host.url=${SONAR_HOST_URL} \\
-  -Dsonar.token=${SONAR_TOKEN}
-"""
-          }
-        }
+echo "Coverage file?"
+ls -l coverage.xml || { echo "coverage.xml missing"; exit 1; }
+echo
+
+echo "=== Running sonar-scanner -X ==="
+'"${scannerHome}"'/bin/sonar-scanner -X \
+  -Dsonar.projectKey=flask-ci-cd-demo \
+  -Dsonar.sources=app \
+  -Dsonar.python.coverage.reportPaths=coverage.xml \
+  -Dsonar.host.url='"${SONAR_HOST_URL}"' \
+  -Dsonar.token='"${SONAR_TOKEN}"'
+
+echo
+echo "=== Looking for report-task.txt (workspace root) ==="
+ls -la .
+if [ -f "report-task.txt" ]; then
+  echo "Found report-task.txt ✅"
+else
+  echo "report-task.txt not found ❌"
+  echo "Searching within 3 levels..."
+  find . -maxdepth 3 -name report-task.txt -print || true
+  exit 1
+fi
+'''
       }
     }
+  }
+}
 
     // Optional: Enforce Quality Gate (requires SonarQube -> Jenkins webhook configured)
     // stage('Quality Gate') {
