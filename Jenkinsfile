@@ -19,8 +19,7 @@ pipeline {
 
     stage('Install & Test') {
       steps {
-        sh(
-          script: '''
+        sh '''#!/usr/bin/env bash
 set -euo pipefail
 
 # Create/refresh venv and install deps
@@ -38,9 +37,7 @@ python -m pytest -q app/tests \
 
 # Sanity check: coverage.xml should exist here for Sonar
 test -f coverage.xml
-''',
-          shell: '/usr/bin/env bash'
-        )
+'''
       }
       post {
         always {
@@ -54,8 +51,7 @@ test -f coverage.xml
         withSonarQubeEnv('sonarqube-server') {
           script {
             def scannerHome = tool 'SonarScanner'
-            sh(
-              script: """
+            sh """#!/usr/bin/env bash
 set -euo pipefail
 
 # Ensure coverage.xml is present in this workspace
@@ -67,15 +63,13 @@ test -f coverage.xml
   -Dsonar.python.coverage.reportPaths=coverage.xml \\
   -Dsonar.host.url=${SONAR_HOST_URL} \\
   -Dsonar.token=${SONAR_TOKEN}
-""",
-              shell: '/usr/bin/env bash'
-            )
+"""
           }
         }
       }
     }
 
-    // Optional: Enforce Quality Gate (requires SonarQube -> Jenkins webhook configured)
+    // Optional: Enforce Quality Gate (requires SonarQube -> Jenkins webhook)
     // stage('Quality Gate') {
     //   steps {
     //     timeout(time: 10, unit: 'MINUTES') {
@@ -86,42 +80,33 @@ test -f coverage.xml
 
     stage('Docker Build') {
       steps {
-        sh(
-          script: '''
+        sh '''#!/usr/bin/env bash
 set -euo pipefail
 
 docker version
 docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-''',
-          shell: '/usr/bin/env bash'
-        )
+'''
       }
     }
 
     stage('Deploy (Run Container)') {
       steps {
-        sh(
-          script: '''
+        sh '''#!/usr/bin/env bash
 set -euo pipefail
 
 docker ps -aq --filter "name=flask-demo" | xargs -r docker rm -f
 docker run -d --name flask-demo -p 5000:5000 ${IMAGE_NAME}:${IMAGE_TAG}
-''',
-          shell: '/usr/bin/env bash'
-        )
+'''
       }
     }
   }
 
   post {
     always {
-      sh(
-        script: '''
+      sh '''#!/usr/bin/env bash
 set -euo pipefail
 docker images | head -n 10 || true
-''',
-        shell: '/usr/bin/env bash'
-      )
+'''
     }
   }
 }
