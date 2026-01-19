@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "flask-ci-cd-demo"
         IMAGE_TAG = "latest"
-        SONAR_HOST_URL = "http://44.197.246.87:9000"
+        SONAR_HOST_URL = "http://44.220.92.94:9000"
         SONAR_TOKEN = credentials('sonar-token')
     }
     stages {
@@ -27,7 +27,7 @@ pipeline {
               python -m pytest -q app/tests --junitxml=reports/pytest-junit.xml \
                 --cov=app --cov-report=xml
             '''
-            stash name: 'coverage', includes: 'coverage.xml'
+            // stash name: 'coverage', includes: 'coverage.xml'
           }
           post {
             always {
