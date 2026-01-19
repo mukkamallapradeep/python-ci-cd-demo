@@ -5,8 +5,6 @@ pipeline {
     environment {
         IMAGE_NAME     = "flask-ci-cd-demo"
         IMAGE_TAG      = "latest"
-        SONAR_HOST_URL = "http://44.220.92.94:9000"
-        SONAR_TOKEN    = credentials('sonar-token')
     }
 
     stages {
@@ -50,8 +48,8 @@ echo "Running SonarQube Scanner..."
 "${scannerHome}/bin/sonar-scanner" \\
   -Dsonar.projectKey=flask-ci-cd-demo \\
   -Dsonar.sources=app \\
-  -Dsonar.host.url=${SONAR_HOST_URL} \\
-  -Dsonar.token=${SONAR_TOKEN}
+  -Dsonar.host.url="$SONAR_HOST_URL" \\
+  -Dsonar.token="$SONAR_AUTH_TOKEN"
 
 echo "SonarQube scan completed."
 """
