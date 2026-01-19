@@ -38,6 +38,8 @@ python -m pytest -q app/tests \
 # Sanity check: coverage.xml should exist here for Sonar
 test -f coverage.xml
 '''
+        // Make coverage.xml available to any subsequent stage/agent
+        stash name: 'coverage', includes: 'coverage.xml'
       }
       post {
         always {
@@ -48,6 +50,9 @@ test -f coverage.xml
 
     stage('SonarQube Analysis') {
       steps {
+        // Bring coverage.xml into the current workspace (even if this stage runs on a different node)
+        unstash 'coverage'
+
         withSonarQubeEnv('sonarqube-server') {
           script {
             def scannerHome = tool 'SonarScanner'
@@ -69,7 +74,7 @@ test -f coverage.xml
       }
     }
 
-    // Optional: Enforce Quality Gate (requires SonarQube -> Jenkins webhook)
+    // Optional: Enforce Quality Gate (requires SonarQube -> Jenkins webhook configured)
     // stage('Quality Gate') {
     //   steps {
     //     timeout(time: 10, unit: 'MINUTES') {
