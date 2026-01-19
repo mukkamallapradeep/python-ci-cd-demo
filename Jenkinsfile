@@ -48,30 +48,31 @@ test -f coverage.xml
       }
     }
 
-    
-stage('SonarQube Analysis') {
-  steps {
-    // Bring coverage.xml into this workspace if you stashed it earlier
-    unstash 'coverage'
+    stage('SonarQube Analysis') {
+      steps {
+        // Ensure coverage.xml is present in this workspace (even if this stage runs on another node)
+        unstash 'coverage'
 
-    withSonarQubeEnv('sonarqube-server') {
-      script {
-        def scannerHome = tool 'SonarScanner'   // Must exist in Global Tool Configuration
-        sh '''#!/usr/bin/env bash
+        // Expose the SonarScanner tool path to the shell as SCANNER_HOME
+        withEnv(["SCANNER_HOME=${tool 'SonarScanner'}"]) {
+          withSonarQubeEnv('sonarqube-server') {
+            sh '''#!/usr/bin/env bash
 set -euo pipefail
 
 echo "=== Sonar DIAGNOSTICS ==="
-echo "PWD               : $(pwd)"
-echo "WORKSPACE         : ${WORKSPACE:-}"
-echo "scannerHome       : '"${scannerHome}"'"
-echo "scanner binary    : '"${scannerHome}"'/bin/sonar-scanner"
-ls -l '"${scannerHome}"'/bin/ || true
+echo "PWD                : $(pwd)"
+echo "WORKSPACE          : ${WORKSPACE:-}"
+echo "SCANNER_HOME       : ${SCANNER_HOME}"
+echo "scanner binary     : ${SCANNER_HOME}/bin/sonar-scanner"
+ls -l "${SCANNER_HOME}/bin/" || true
 echo
+
 echo "Java version:"
 java -version || { echo "Java not found on this node. Install JDK (e.g., openjdk-17-jdk) and retry."; exit 1; }
 echo
-echo "Checking SonarQube availability at: '"${SONAR_HOST_URL}"'/api/server/version"
-curl -sfI '"${SONAR_HOST_URL}"'/api/server/version || { echo "Cannot reach SonarQube at ${SONAR_HOST_URL}"; exit 1; }
+
+echo "Checking SonarQube availability at: ${SONAR_HOST_URL}/api/server/version"
+curl -sfI "${SONAR_HOST_URL}/api/server/version" || { echo "Cannot reach SonarQube at ${SONAR_HOST_URL}"; exit 1; }
 echo "Sonar is reachable."
 echo
 
@@ -79,13 +80,13 @@ echo "Coverage file?"
 ls -l coverage.xml || { echo "coverage.xml missing"; exit 1; }
 echo
 
-echo "=== Running sonar-scanner -X ==="
-'"${scannerHome}"'/bin/sonar-scanner -X \
+echo "=== Running sonar-scanner -X (debug) ==="
+"${SCANNER_HOME}/bin/sonar-scanner" -X \
   -Dsonar.projectKey=flask-ci-cd-demo \
   -Dsonar.sources=app \
   -Dsonar.python.coverage.reportPaths=coverage.xml \
-  -Dsonar.host.url='"${SONAR_HOST_URL}"' \
-  -Dsonar.token='"${SONAR_TOKEN}"'
+  -Dsonar.host.url="${SONAR_HOST_URL}" \
+  -Dsonar.token="${SONAR_TOKEN}"
 
 echo
 echo "=== Looking for report-task.txt (workspace root) ==="
@@ -99,12 +100,12 @@ else
   exit 1
 fi
 '''
+          }
+        }
       }
     }
-  }
-}
 
-    // Optional: Enforce Quality Gate (requires SonarQube -> Jenkins webhook configured)
+    // Optional: Enforce Quality Gate (requires SonarQube -> Jenkins webhook)
     // stage('Quality Gate') {
     //   steps {
     //     timeout(time: 10, unit: 'MINUTES') {
