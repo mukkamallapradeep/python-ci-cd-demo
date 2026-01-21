@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return f"Hello from Flask CI/CD via Jenkins & Docker. Created at {datetime.now()}"
+    return f"Hello from Flask CI/CD via Jenkins & Docker. Created at {datetime.now()} current date"
 
 @app.route("/health")
 def health():
