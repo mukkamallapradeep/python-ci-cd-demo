@@ -1,11 +1,9 @@
-
 pipeline {
     agent any
 
     environment {
         IMAGE_NAME     = "flask-ci-cd-demo"
         IMAGE_TAG      = "latest"
-        TARGET_IP  = "<TARGET_PUBLIC_IP>"
     }
 
     stages {
@@ -16,48 +14,48 @@ pipeline {
             }
         }
 
-        // stage('Install Dependencies') {
-        //     steps {
-        //         sh '''
-        //         set -eux
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                set -eux
 
-        //         # Show Python version available on the node
-        //         python3 --version
+                # Show Python version available on the node
+                python3 --version
 
-        //         # Create and activate virtual environment
-        //         python3 -m venv .venv
-        //         . .venv/bin/activate
+                # Create and activate virtual environment
+                python3 -m venv .venv
+                . .venv/bin/activate
 
-        //         # Install only dependencies (NO TESTS)
-        //         python -m pip install --upgrade pip
-        //         python -m pip install -r app/requirements.txt
-        //         '''
-        //     }
-        // }
+                # Install only dependencies (NO TESTS)
+                python -m pip install --upgrade pip
+                python -m pip install -r app/requirements.txt
+                '''
+            }
+        }
 
-//         stage('SonarQube Analysis') {
-//             steps {
-//                 withSonarQubeEnv('sonarqube-server') {
-//                     // Use Jenkins SonarScanner tool
-//                     script {
-//                         def scannerHome = tool 'sonar-scanner'
-//                         sh """#!/usr/bin/env bash
-// set -eux
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube-server') {
+                    // Use Jenkins SonarScanner tool
+                    script {
+                        def scannerHome = tool 'sonar-scanner'
+                        sh """#!/usr/bin/env bash
+set -eux
 
-// echo "Running SonarQube Scanner..."
+echo "Running SonarQube Scanner..."
 
-// "${scannerHome}/bin/sonar-scanner" \\
-//   -Dsonar.projectKey=flask-ci-cd-demo \\
-//   -Dsonar.sources=app \\
-//   -Dsonar.host.url="$SONAR_HOST_URL" \\
-//   -Dsonar.token="$SONAR_AUTH_TOKEN"
+"${scannerHome}/bin/sonar-scanner" \\
+  -Dsonar.projectKey=flask-ci-cd-demo \\
+  -Dsonar.sources=app \\
+  -Dsonar.host.url="$SONAR_HOST_URL" \\
+  -Dsonar.token="$SONAR_AUTH_TOKEN"
 
-// echo "SonarQube scan completed."
-// """
-//                     }
-//                 }
-//             }
-//         }
+echo "SonarQube scan completed."
+"""
+                    }
+                }
+            }
+        }
 
         stage('Docker Build') {
             steps {
@@ -69,55 +67,17 @@ pipeline {
             }
         }
 
-        
-/* ------------------- NEW STAGE 1 -------------------- */
-        stage('Save Docker Image as TAR') {
+        stage('Deploy (Run Container)') {
             steps {
                 sh '''
                 set -eux
-                docker save ${IMAGE_NAME}:${IMAGE_TAG} -o myapp.tar
-                ls -lh myapp.tar
+                docker ps -aq --filter "name=flask-demo" | xargs -r docker rm -f
+                docker run -d --name flask-demo -p 5000:5000 ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
 
-/* ------------------- NEW STAGE 2 -------------------- */
-        stage('Transfer Image to Target Server') {
-            steps {
-                sshagent(credentials: ['ansible-ssh-key']) {
-                    sh '''
-                    set -eux
-                    scp -o StrictHostKeyChecking=no myapp.tar ubuntu@${TARGET_IP}:/tmp/myapp.tar
-                    '''
-                }
-            }
-        }
-
-/* ------------------- NEW STAGE 3 -------------------- */
-        stage('Deploy Using Ansible') {
-            steps {
-                sshagent(credentials: ['ansible-ssh-key']) {
-                    sh '''
-                    set -eux
-                    ansible-playbook -i ansible/hosts.ini ansible/deploy.yml
-                    '''
-                }
-            }
-        }
     }
-
-
-    //     stage('Deploy (Run Container)') {
-    //         steps {
-    //             sh '''
-    //             set -eux
-    //             docker ps -aq --filter "name=flask-demo" | xargs -r docker rm -f
-    //             docker run -d --name flask-demo -p 5000:5000 ${IMAGE_NAME}:${IMAGE_TAG}
-    //             '''
-    //         }
-    //     }
-
-    // }
 
     post {
         always {
