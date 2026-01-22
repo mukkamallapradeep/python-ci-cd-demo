@@ -1,0 +1,15 @@
+
+- hosts: prod
+  become: true
+  tasks:
+    - name: Ensure old container is removed
+      shell: docker rm -f myapp || true
+
+    - name: Pull or load image (local build pushed from Jenkins is optional; here we copy tar)
+      shell: |
+        if [ -f /tmp/myapp.tar ]; then
+          docker load -i /tmp/myapp.tar
+        fi
+
+    - name: Run new container
+      shell: docker run -d --name myapp -p 80:80 myapp:latest
