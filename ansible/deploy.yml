@@ -1,15 +1,13 @@
+- hosts: prod-server
+  become: yes
 
-- hosts: prod
-  become: true
   tasks:
-    - name: Ensure old container is removed
-      shell: docker rm -f myapp || true
+    - name: Remove old container
+      shell: docker rm -f flask-demo || true
 
-    - name: Pull or load image (local build pushed from Jenkins is optional; here we copy tar)
-      shell: |
-        if [ -f /tmp/myapp.tar ]; then
-          docker load -i /tmp/myapp.tar
-        fi
+    - name: Load new image
+      shell: docker load -i /tmp/myapp.tar
 
     - name: Run new container
-      shell: docker run -d --name myapp -p 80:80 myapp:latest
+      shell: docker run -d --name flask-demo -p 5000:5000 flask-ci-cd-demo:latest
+
